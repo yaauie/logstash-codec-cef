@@ -1,3 +1,6 @@
+## 6.2.0
+ - Introduce ECS Compatibility mode [#83](https://github.com/logstash-plugins/logstash-codec-cef/pull/83).
+
 ## 6.1.1
  - Improved encoding performance, especially when encoding many extension fields [#81](https://github.com/logstash-plugins/logstash-codec-cef/pull/81)
  - Fixed CEF short to long name translation for ahost/agentHostName field, according to documentation [#75](https://github.com/logstash-plugins/logstash-codec-cef/pull/75)
