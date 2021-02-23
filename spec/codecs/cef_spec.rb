@@ -563,7 +563,8 @@ describe LogStash::Codecs::CEF do
           if ecs_compatibility == :disabled
             expect(event.get('deviceReceiptTime')).to eq('Sep 07 2018 14:50:39')
           else
-            expect(event.get('[@timestamp]').to_s).to eq('2018-09-07T14:50:39.000Z')
+            expected_time = LogStash::Timestamp.new(Time.parse('Sep 07 2018 14:50:39')).to_s
+            expect(event.get('[@timestamp]').to_s).to eq(expected_time)
           end
           expect(event.get(ecs_select[disabled:'deviceEventCategory',     v1:'[cef][category]'])).to eq('Access Log')
           expect(event.get(ecs_select[disabled:'deviceVersion',           v1:'[observer][version]'])).to eq('1.2.3.45.67')
