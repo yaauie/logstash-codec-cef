@@ -473,8 +473,8 @@ describe LogStash::Codecs::CEF do
 
           decode_one(subject, "\r\n") do |e|
             validate(e)
-            insist { e.get(ecs_select[disabled:ecs_select[disabled:"deviceVendor",v1:"[observer][vendor]"],v1:"[observer][vendor]"]) } == "security"
-            insist { e.get(ecs_select[disabled:ecs_select[disabled:"deviceProduct",v1:"[observer][product]"],v1:"[observer][product]"]) } == "threatmanager"
+            insist { e.get(ecs_select[disabled: "deviceVendor", v1:"[observer][vendor]"]) } == "security"
+            insist { e.get(ecs_select[disabled: "deviceProduct", v1:"[observer][product]"]) } == "threatmanager"
           end
         end
       end
