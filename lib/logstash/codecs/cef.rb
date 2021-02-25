@@ -15,7 +15,7 @@ require 'logstash/plugin_mixins/ecs_compatibility_support'
 class LogStash::Codecs::CEF < LogStash::Codecs::Base
   config_name "cef"
 
-  include LogStash::PluginMixins::ECSCompatibilitySupport(:disabled,:v1)
+  include LogStash::PluginMixins::ECSCompatibilitySupport(:disabled, :v1)
 
   # Device vendor field in CEF header. The new value can include `%{foo}` strings
   # to help you build a new value from other parts of the event.
@@ -248,6 +248,17 @@ class LogStash::Codecs::CEF < LogStash::Codecs::Base
         end
 
         event.set(extension_field_key, extension_field_value)
+      end
+      # adapt @timestamp timezone to dtz
+      device_timezone_field = ecs_compatibility == :disabled ? "deviceTimeZone" : "[event][timezone]"
+      if event.include?(device_timezone_field) && ecs_compatibility != :disabled
+        t = event.get(TIMESTAMP_FIELD).time
+        #t is in UTC convert to local time to have the original hour/minute/second
+        t = t.getlocal
+        device_timezone = TZInfo::Timezone.get(event.get(device_timezone_field))
+        # keeping the original hour/minute/second move only the timezone, don't change the hour absoluto value
+        zoned_time = device_timezone.local_time(t.year, t.month, t.day, t.hour, t.min, t.sec)
+        event.set(TIMESTAMP_FIELD, LogStash::Timestamp.new(zoned_time))
       end
     end
 
@@ -535,13 +546,24 @@ class LogStash::Codecs::CEF < LogStash::Codecs::Base
   end
 
   def normalize_timestamp(value)
+    value = value.to_i if integer?(value)
     time = case value
            when Time then value
            when String then Time.parse(value)
-           when Number then Time.at(value)
+           when Numeric then Time.at(value / 1000) # in CEF time is in milliseconds since 1970
            else fail("Failed to normalize time `#{value.inspect}`")
            end
     LogStash::Timestamp.new(time)
+  end
+
+  def integer?(s)
+    if s.is_a?(String)
+      !!Integer(s)
+    else
+      false
+    end
+  rescue ArgumentError
+    false
   end
 
   def get_value(fieldname, event)

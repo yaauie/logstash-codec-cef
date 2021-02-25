@@ -5,6 +5,7 @@ require "insist"
 require "logstash/codecs/cef"
 require "logstash/event"
 require "json"
+require "tzinfo"
 
 require 'logstash/plugin_mixins/ecs_compatibility_support/spec_helper'
 
@@ -545,6 +546,21 @@ describe LogStash::Codecs::CEF do
       it "should be OK with equal in the message" do
         decode_one(subject, equal_in_message) do |e|
           insist { e.get("moo") } == 'this =has = equals='
+        end
+      end
+
+      let(:destination_time_zoned) { %q{CEF:0|Security|threatmanager|1.0|100|worm successfully stopped|Very-High| eventId=1 msg=Worm successfully stopped art=1500464384997 deviceSeverity=10 rt=1500450621000 src=10.0.0.1 sourceZoneURI=/All Zones/ArcSight System/Private Address Space Zones/RFC1918: 10.0.0.0-10.255.255.255 spt=1232 dst=2.1.2.2 destinationZoneURI=/All Zones/ArcSight System/Public Address Space Zones/RIPE NCC/2.0.0.0-2.255.255.255 (RIPE NCC) ahost=connector.rhel72 agt=192.168.231.129 agentZoneURI=/All Zones/ArcSight System/Private Address Space Zones/RFC1918: 192.168.0.0-192.168.255.255 amac=00-0C-29-51-8A-84 av=7.6.0.8009.0 atz=Europe/Lisbon at=syslog_file dvchost=client1 dtz=Europe/Moscow _cefVer=0.1 aid=3UBajWl0BABCABBzZSlmUdw==} }
+      it 'should decode @timestamp in timezone defined by dtz' do
+        decode_one(subject, destination_time_zoned) do |event|
+          if ecs_compatibility == :disabled
+            expect(event.get('deviceReceiptTime')).to eq("1500450621000")
+          else
+            # expect the milliseconds contained in rt is converted to a time in the timezone defined in dtz
+            t = Time.at(1500450621)
+            tz = TZInfo::Timezone.get('Europe/Moscow').local_time(t.year, t.month, t.day, t.hour, t.min, t.sec)
+            expected_time = LogStash::Timestamp.new(tz).to_s
+            expect(event.get('[@timestamp]').to_s).to eq(expected_time)
+          end
         end
       end
 
