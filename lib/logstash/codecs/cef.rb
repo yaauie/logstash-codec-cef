@@ -220,14 +220,15 @@ class LogStash::Codecs::CEF < LogStash::Codecs::Base
     message = unprocessed_data
 
     # Try and parse out the syslog header if there is one
-    if (cef_version = event.get(@header_fields[0])).include?(' ')
+    cef_version_field = @header_fields[0]
+    if (cef_version = event.get(cef_version_field)).include?(' ')
       split_cef_version = cef_version.rpartition(' ')
       event.set(@syslog_header, split_cef_version[0])
-      event.set(@header_fields[0], split_cef_version[2])
+      event.set(cef_version_field, split_cef_version[2])
     end
 
     # Get rid of the CEF bit in the version
-    event.set(@header_fields[0], delete_cef_prefix(event.get(@header_fields[0])))
+    event.set(cef_version_field, delete_cef_prefix(event.get(cef_version_field)))
 
     # Use a scanning parser to capture the Extension Key/Value Pairs
     if message && message.include?('=')
